@@ -30,9 +30,11 @@ fn read_otp_codes(_vault_name: &str) -> ! {
     println!("Please, enter your password:");
     std::io::stdout().flush().unwrap();
     let mut tmp = read_password().unwrap();
-    let password = tmp.as_bytes();
-    let mut cocoon = MiniCocoon::from_password(password, &seed);
+    let mut pwd_trimmed = tmp.trim().to_string();
     tmp.zeroize();
+    let password = pwd_trimmed.as_bytes();
+    let mut cocoon = MiniCocoon::from_password(password, &seed);
+    pwd_trimmed.zeroize();
 
     let secret = cocoon.unwrap(&encrypted_vault).unwrap_or_else(|_| {
         println!("Password incorrect, decryption failed.");
@@ -84,17 +86,20 @@ fn add_vault(_vault_name: &str) -> ! {
         std::process::exit(1);
     }
     tmp2.zeroize();
-    let password = tmp.as_bytes();
+    let mut pwd_trimmed = tmp.trim().to_string();
+    tmp.zeroize();
+    let password = pwd_trimmed.as_bytes();
     let seed = hex::decode("c8977f757babb1766fec969a321d3fb058d037b435da0d1a6c2798bd8d890733").unwrap(); 
     // sha256 of "gloom totp"
     let mut cocoon = MiniCocoon::from_password(password, &seed);
-    tmp.zeroize();
+    pwd_trimmed.zeroize();
 
     println!("Please, input your secret TOTP code:");
     std::io::stdout().flush().unwrap();
-    let mut secret_str = String::new();
-    std::io::stdin().read_line(&mut secret_str).unwrap();
-    secret_str.pop();
+    let mut _secret_str = String::new();
+    std::io::stdin().read_line(&mut _secret_str).unwrap();
+    let mut secret_str = _secret_str.trim().to_string();
+    _secret_str.zeroize();
     let mut secret_bytes = Secret::Encoded(secret_str).to_bytes().unwrap_or_else(|_|{
         println!("Invalid secret code.");
         std::process::exit(1);
