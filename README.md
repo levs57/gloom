@@ -7,4 +7,5 @@ Executable uses its directory as working, creating .vault files. No sanity check
 Each vault is protected by its password, using Cocoon crate.
 
 ./gloom add vaultname : will create a vault with this name.
+
 ./gloom otp vaultname : will output current OTP codes for this vault. Press q to exit.
