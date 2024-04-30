@@ -42,7 +42,7 @@ fn read_otp_codes(_vault_name: &str) -> ! {
     });
 
     println!("Generating OTP codes, press q to exit.");
-    let totp = TOTP::new(Algorithm::SHA1, 6, 1, 30, secret).unwrap();
+    let totp = TOTP::new_unchecked(Algorithm::SHA1, 6, 1, 30, secret);
 
     let mut token = String::new();
     loop {
