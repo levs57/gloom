@@ -1,5 +1,6 @@
 use std::{env, fs::{self, File}, io::{Read, Write}, path::{Path, PathBuf}, process, sync::mpsc::{self, Receiver}, thread::{self, sleep}, time::Duration};
 
+use base32::Alphabet;
 use crossterm::event::{Event, KeyCode, KeyEvent};
 
 use cocoon::{MiniCocoon};
@@ -7,6 +8,49 @@ use rpassword::read_password;
 use totp_rs::{Algorithm, Secret, TOTP};
 use zeroize::Zeroize;
 
+fn unseal(_vault_name: &str) -> ! {
+    let mut vault_name = PathBuf::new();
+    vault_name.push(_vault_name);
+    if let None = vault_name.extension() {
+        vault_name.set_extension("vault");
+    }
+    if ! vault_name.exists() {
+        println!("Vault not found.");
+        std::process::exit(1)
+    }
+    
+    let mut vault_file = File::open(vault_name).unwrap();
+    let mut encrypted_vault = Vec::new();
+    vault_file.read_to_end(&mut encrypted_vault).unwrap();
+    
+    let seed = hex::decode("c8977f757babb1766fec969a321d3fb058d037b435da0d1a6c2798bd8d890733").unwrap(); 
+    // sha256 of "gloom totp"
+
+    println!("Please, enter your password:");
+    std::io::stdout().flush().unwrap();
+    let mut tmp = read_password().unwrap();
+    let mut pwd_trimmed = tmp.trim().to_string();
+    tmp.zeroize();
+    let password = pwd_trimmed.as_bytes();
+    let mut cocoon = MiniCocoon::from_password(password, &seed);
+    pwd_trimmed.zeroize();
+
+    let mut secret_bytes = cocoon.unwrap(&encrypted_vault).unwrap_or_else(|_| {
+        println!("Password incorrect, decryption failed.");
+        std::process::exit(1)
+    });
+
+    let mut secret = base32::encode(Alphabet::Rfc4648 { padding: false }, &secret_bytes);
+    
+    secret_bytes.zeroize();
+
+    println!("{}", secret);
+
+    secret.zeroize();
+    std::process::exit(0)
+
+
+}
 
 fn read_otp_codes(_vault_name: &str) -> ! {
     let mut vault_name = PathBuf::new();
@@ -124,6 +168,7 @@ fn invalid_input() -> ! {
     println!("Available commands:");
     println!("gloom add vaultname : create totp vault");
     println!("gloom otp vaultname : read otp codes from the vault");
+    println!("gloom unseal vaultname : reveal root secret");
     std::process::exit(1);
 }
 
@@ -144,6 +189,10 @@ fn main() {
 
     if command == "add" {
         add_vault(&vault_name)
+    }
+
+    if command == "unseal" {
+        unseal(&vault_name)
     }
 
     invalid_input()
